@@ -17,22 +17,27 @@ wss.on("connection", (socket) => {
         return; //TODO do proper manage of error
       }
 
-      if (data?.type == "appoinment") {
+      if(data?.type=="connection"){
         if (!users.has(data?.userId)) {
           users.set(data.userId, socket);
         }
-        if (!users.has(data?.therapistId)) {
+       if (!users.has(data?.therapistId)) {
           users.set(data.therapistId, socket);
         }
-
-        let therapistSocket = users.get(data.therapistId);
-        const response = {
-          message: data?.message || "appoinment_request",
-          userId: data.userId,
-          time: data.time,
-          therapistId: data.therapistId,
-        };
-        therapistSocket.send(JSON.stringify(response));
+      }
+      else if (data?.type == "appoinment") {
+        if(!data.therapistId){
+          return;
+        }
+        let therapistSocket = users.get(data?.therapistId);
+          console.log("29..",{users},therapistSocket);
+          const response = {
+            message: data?.message || "appoinment_request",
+            userId: data.userId,
+            time: data.time,
+            therapistId: data.therapistId,
+          };
+          therapistSocket.send(JSON.stringify(response));
       } else if (data?.type == "appoinment_fixed") {
         if (!data.roomId) {
           return; //TODO do proper manage of error
@@ -68,6 +73,20 @@ wss.on("connection", (socket) => {
     console.error("Message handling error:", err);
   }
   socket.on("close", () => {
+    
+    let sockets=[...users.entries()];
+    
+    let userid;
+
+   for (let [key, value] of sockets) {
+    if(value==socket){
+      userid=key;
+    }
+  }
+  console.log("82..",userid);
+
+    users.delete(userid);
+    
     console.log("Connection closed");
   });
   socket.on("error", console.error);

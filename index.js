@@ -13,17 +13,18 @@ wss.on("connection", (socket) => {
       console.log("Message: ", JSON.parse(message));
       let data = Object.keys(message)?.length > 0 ? JSON.parse(message) : {};
 
-      if (!data.userId || !data.therapistId) {
+      if (!data.userId && !data.therapistId) {
         return; //TODO do proper manage of error
       }
 
-      if(data?.type=="connection"){
-        if (!users.has(data?.userId)) {
+      if(data.type=="connection"){
+        if (data?.userId &&  !users.has(data?.userId)) {
           users.set(data.userId, socket);
         }
-       if (!users.has(data?.therapistId)) {
+       if (data?.therapistId && !users.has(data?.therapistId)) {
           users.set(data.therapistId, socket);
         }
+      console.log('27..',users);
       }
       else if (data?.type == "appoinment") {
         if(!data.therapistId){
@@ -37,7 +38,8 @@ wss.on("connection", (socket) => {
             time: data.time,
             therapistId: data.therapistId,
           };
-          therapistSocket.send(JSON.stringify(response));
+          if(therapistSocket) therapistSocket.send(JSON.stringify(response));
+
       } else if (data?.type == "appoinment_fixed") {
         if (!data.roomId) {
           return; //TODO do proper manage of error

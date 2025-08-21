@@ -49,6 +49,7 @@ wss.on("connection", (socket) => {
           userId: data.userId,
           time: data.time,
           therapistId: data.therapistId,
+          roomId
         };
 
         if (userSocket) userSocket.send(JSON.stringify(response));

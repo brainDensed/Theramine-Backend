@@ -72,6 +72,7 @@ wss.on("connection", (socket) => {
           userId: data.userId,
           time: data.time,
           therapistId: data.therapistId,
+          type: "chat"
         };
 
         receiverSocket.send(JSON.stringify(resp));

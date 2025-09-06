@@ -115,7 +115,19 @@ wss.on("connection", (socket) => {
           (memId) => users.get(memId) != socket
         );
         let receiverSocket = users.get(receiverId);
-        // Chat message relay logic can be added here if needed
+        if (receiverSocket) {
+          // Forward the chat message to the other participant
+          receiverSocket.send(
+            JSON.stringify({
+              type: "chat",
+              message: data.message,
+              userId: data.userId,
+              therapistId: data.therapistId,
+              roomId: data.roomId,
+              time: data.time || Date.now(),
+            })
+          );
+        }
       }
     });
   } catch (err) {

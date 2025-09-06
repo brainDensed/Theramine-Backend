@@ -1,9 +1,15 @@
+
 const { WebSocketServer } = require("ws");
+const admin = require("./firebaseAdmin");
+
+const { registerDIDForUser } = require("./registerDid");
+const { randomUUID } = require("crypto");
 const PORT = 8080;
 const wss = new WebSocketServer({ port: PORT });
 
 let users = new Map();
 let rooms = new Map();
+
 
 wss.on("connection", (socket) => {
   console.log(`server is listening on port: ${PORT}`);
@@ -16,11 +22,58 @@ wss.on("connection", (socket) => {
         return; //TODO do proper manage of error
       }
 
+      // If user, require Firebase ID token verification
       if (data.type == "connection") {
-        if (data?.userId && !users.has(data?.userId)) {
-          users.set(data.userId, socket);
+        if (data?.userId) {
+          // Expect idToken from frontend for users
+          if (!data.idToken) {
+            socket.send(JSON.stringify({ error: "Missing ID token" }));
+            return;
+          }
+          admin
+            .auth()
+            .verifyIdToken(data.idToken)
+            .then(async (decodedToken) => {
+              // Optionally, check phone_number matches data.userId
+              if (
+                decodedToken.phone_number &&
+                decodedToken.phone_number === data.userId
+              ) {
+                users.set(data.userId, socket);
+                // Automatically register DID after phone verification
+                try {
+                  // Use wallet address from frontend if available, else from decodedToken (if mapped)
+                  const userWallet = data.walletAddress;
+                  if (!userWallet) {
+                    socket.send(JSON.stringify({ error: "Missing wallet address for DID registration" }));
+                    return;
+                  }
+                  const didString = `did:theramine:${randomUUID()}`;
+                  const result = await registerDIDForUser(userWallet, didString);
+                  socket.send(
+                    JSON.stringify({
+                      did: result.did,
+                      status: result.alreadyRegistered ? "DID already registered" : "DID registered"
+                    })
+                  );
+                } catch (err) {
+                  socket.send(JSON.stringify({ error: "DID registration failed", details: err.message }));
+                }
+              } else {
+                socket.send(
+                  JSON.stringify({ error: "Phone number mismatch" })
+                );
+              }
+            })
+            .catch((err) => {
+              socket.send(
+                JSON.stringify({ error: "Invalid or expired ID token" })
+              );
+            });
+          return;
         }
-        if (data?.therapistId && !users.has(data?.therapistId)) {
+        if (data?.therapistId) {
+          // Therapists are identified by walletId, skip phone check
           users.set(data.therapistId, socket);
         }
       } else if (data?.type == "appoinment") {
@@ -62,40 +115,10 @@ wss.on("connection", (socket) => {
           (memId) => users.get(memId) != socket
         );
         let receiverSocket = users.get(receiverId);
-
-        if (!receiverSocket) {
-          return;
-        }
-
-        let resp = {
-          message: data?.message,
-          userId: data.userId,
-          time: data.time,
-          therapistId: data.therapistId,
-          type: "chat"
-        };
-
-        receiverSocket.send(JSON.stringify(resp));
+        // Chat message relay logic can be added here if needed
       }
     });
-  } catch (error) {
-    console.error("Message handling error:", err);
+  } catch (err) {
+    console.error("WebSocket error:", err);
   }
-  socket.on("close", () => {
-    let sockets = [...users.entries()];
-
-    let userid;
-
-    for (let [key, value] of sockets) {
-      if (value == socket) {
-        userid = key;
-      }
-    }
-    console.log("82..", userid);
-
-    users.delete(userid);
-
-    console.log("Connection closed");
-  });
-  socket.on("error", console.error);
 });

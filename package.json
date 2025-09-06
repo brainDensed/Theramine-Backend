@@ -21,7 +21,9 @@
   "homepage": "https://github.com/brainDensed/Theramine-Backend#readme",
   "dependencies": {
     "cors": "^2.8.5",
+    "ethers": "^6.15.0",
     "express": "^5.1.0",
+    "firebase-admin": "^13.5.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

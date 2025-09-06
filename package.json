@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/brainDensed/Theramine-Backend#readme",
   "dependencies": {
+    "@api/verbwire": "file:.api/apis/verbwire",
     "cors": "^2.8.5",
     "ethers": "^6.15.0",
     "express": "^5.1.0",

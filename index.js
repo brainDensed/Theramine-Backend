@@ -6,13 +6,16 @@ const { registerDIDForUser } = require("./registerDid");
 const { randomUUID } = require("crypto");
 const PORT = 8080;
 const wss = new WebSocketServer({ port: PORT });
+require("dotenv").config();
 
 let users = new Map();
 let rooms = new Map();
 
+verbwire.auth(process.env.VERBWIRE_API_KEY);
+console.log("15...", process.env.VERBWIRE_API_KEY);
+
 wss.on("connection", (socket) => {
   console.log(`server is listening on port: ${PORT}`);
-  verbwire.auth(process.env.VERBWIRE_API_KEY);
 
   try {
     socket.on("message", (message) => {
@@ -58,23 +61,31 @@ wss.on("connection", (socket) => {
                   );
 
                   // Mint NFT if this is a new DID registration
+                  console.log("61.,..", result);
                   if (!result.alreadyRegistered) {
                     try {
                       const mintResponse =
-                        await verbwire.postNftMintQuickmintfrommetadata({
+                        // await verbwire.postNftMintQuickmintfrommetadata({
+                        //   chain: "sepolia",
+                        //   name: "Theramine Login Badge",
+                        //   description:
+                        //     "Awarded for registering a DID on Theramine",
+                        //   imageUrl: "https://ipfs.io/ipfs/bafybeifponvvbpykojqgjfyuuwuslzzfja6mmn6p7bipdc7a53xm4rk5lu", // Replace with your badge image URL
+                        //   recipientAddress: userWallet,
+                        //   contractAddress: "0xBEe8Ec530fC4df32CDCB0B1cb90a40E5675528E2",
+                        //   data: {
+                        //     attributes: [
+                        //       { trait_type: "Badge Type", value: "Login" },
+                        //       { trait_type: "Platform", value: "Theramine" },
+                        //     ],
+                        //   },
+                        // });
+                       await verbwire.postNftMintQuickmintfrommetadataurl({
+                          allowPlatformToOperateToken: "true",
                           chain: "sepolia",
-                          name: "Theramine Login Badge",
-                          description:
-                            "Awarded for registering a DID on Theramine",
-                          imageUrl: "https://ipfs.io/ipfs/bafybeifponvvbpykojqgjfyuuwuslzzfja6mmn6p7bipdc7a53xm4rk5lu", // Replace with your badge image URL
-                          recipientAddress: userWallet,
-                          contractAddress: "0xBEe8Ec530fC4df32CDCB0B1cb90a40E5675528E2",
-                          data: JSON.stringify({
-                            attributes: [
-                              { trait_type: "Badge Type", value: "Login" },
-                              { trait_type: "Platform", value: "Theramine" },
-                            ],
-                          }),
+                          metadataUrl:
+                            "https://ipfs.io/ipfs/bafybeifponvvbpykojqgjfyuuwuslzzfja6mmn6p7bipdc7a53xm4rk5lu",
+                          recipientAddress:userWallet,
                         });
                       console.log("mint response", mintResponse);
                       socket.send(
@@ -85,6 +96,7 @@ wss.on("connection", (socket) => {
                         })
                       );
                     } catch (mintErr) {
+                      console.log("888...", mintErr);
                       socket.send(
                         JSON.stringify({
                           did: result.did,

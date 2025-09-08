@@ -171,12 +171,43 @@ wss.on("connection", (socket) => {
         if (!data.roomId) {
           return; //TODO do proper manage of error
         }
+        
+        // Get room members
         let roomIdMembersInfo = rooms.get(data.roomId) || [];
+        
+        // Find the receiver (the other person in the room)
         let receiverId = roomIdMembersInfo.find(
           (memId) => users.get(memId) != socket
         );
         let receiverSocket = users.get(receiverId);
-        // Chat message relay logic can be added here if needed
+        
+        // Relay the message to the receiver
+        if (receiverSocket && receiverSocket.readyState === 1) {
+          const messageToRelay = {
+            type: "chat",
+            message: data.message,
+            sender: data.sender,
+            timestamp: data.timestamp,
+            roomId: data.roomId,
+            userId: data.userId,
+            therapistId: data.therapistId
+          };
+          
+          receiverSocket.send(JSON.stringify(messageToRelay));
+          console.log(`💬 Message relayed from ${data.sender} to ${receiverId} in room ${data.roomId}`);
+        } else {
+          console.log(`⚠️ Receiver ${receiverId} not found or not connected for room ${data.roomId}`);
+        }
+        
+        // Send confirmation back to sender
+        const confirmation = {
+          type: "message_sent",
+          status: receiverSocket ? "delivered" : "pending",
+          timestamp: data.timestamp,
+          roomId: data.roomId
+        };
+        
+        socket.send(JSON.stringify(confirmation));
       }
     });
   } catch (err) {
